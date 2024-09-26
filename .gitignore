@@ -1,0 +1,15 @@
+.env
+docker-compose.yml
+Dockerfile
+*.log
+tmp/
+.DS_Store
+node_modules/
+dist/
+build/
+coverage/
+*.out
+*.o
+.vscode/
+.idea/
+
