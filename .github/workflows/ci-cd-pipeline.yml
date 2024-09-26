@@ -16,6 +16,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: List directory structure
+        run: |
+          ls -R
+          echo "Backend directory:"
+          ls -la ./backend
+          echo "Frontend directory:"
+          ls -la ./frontend
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -24,24 +32,18 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
+      
       - name: Verify Docker Hub Login
-       run: docker info
-      - name: List directory structure
-        run: |
-          ls -R
-          echo "Backend directory:"
-          ls -la ./backend
-          echo "Frontend directory:"
-          ls -la ./frontend
+        run: docker info
+
       - name: Build and push backend Docker image
         working-directory: ./backend
         run: |
-          docker build -f ./backend/Dockerfile -t halludbam/backend:latest ./backend
+          docker build -t halludbam/backend:latest .
           docker push halludbam/backend:latest
-
+      
       - name: Build and push frontend Docker image
         working-directory: ./frontend
         run: |
-          docker build -f ./frontend/Dockerfile -t halludbam/frontend:latest ./frontend
+          docker build -t halludbam/frontend:latest .
           docker push halludbam/frontend:latest
-
