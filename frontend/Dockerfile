@@ -1,19 +1,19 @@
 # Stage 1: Build the React app
 FROM node:14 AS build
 
-# Set working directory in the container
+# Set the working directory in the container
 WORKDIR /app
 
-# Copy package.json and package-lock.json files
+# Copy frontend package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies
+# Install frontend dependencies
 RUN npm install
 
-# Copy the rest of the application files
+# Copy the rest of the frontend files
 COPY . .
 
-# Build the React app
+# Build the frontend app
 RUN npm run build
 
 # Stage 2: Serve the app with Nginx
