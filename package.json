@@ -5,14 +5,14 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "react-scripts start",
+    "build": "react-scripts build"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
     "react": "^18.3.1",
-    "react-dom": "^18.3.1",
-    "react-scripts": "^5.0.1"
+    "react-dom": "^18.3.1"
   }
 }
+
