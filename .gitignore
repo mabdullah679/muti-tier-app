@@ -1,15 +1,30 @@
+# Ignore environment variables
 .env
-docker-compose.yml
-Dockerfile
-*.log
-tmp/
-.DS_Store
+
+# Ignore local build artifacts and dependencies
 node_modules/
 dist/
 build/
 coverage/
+   
+# Ignore Docker Compose, but include Dockerfiles in frontend and backend
+docker-compose.yml
+/Dockerfile
+!backend/Dockerfile
+!frontend/Dockerfile
+
+# Ignore logs and temporary files
+*.log
 *.out
 *.o
+tmp/
+.DS_Store
+
+# Ignore IDE/editor-specific directories and files
 .vscode/
 .idea/
+
+# Ignore OS-generated files
+Thumbs.db
+Desktop.ini
 
