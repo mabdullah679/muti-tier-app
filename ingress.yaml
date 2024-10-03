@@ -1,14 +1,13 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: multi-tier-app-ingress
-  namespace: default
+  name: frontend-ingress
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
-  ingressClassName: nginx  # Add this line to specify the IngressClass
+  ingressClassName: nginx
   rules:
-  - host: localhost
+  - host: multi-tier-app.local
     http:
       paths:
       - path: /
@@ -18,10 +17,4 @@ spec:
             name: frontend
             port:
               number: 80
-      - path: /api
-        pathType: Prefix
-        backend:
-          service:
-            name: backend
-            port:
-              number: 3001
+
