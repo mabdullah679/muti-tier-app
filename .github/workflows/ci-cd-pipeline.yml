@@ -1,41 +1,134 @@
 name: CI/CD Pipeline
- 
+
 on:
   push:
-    branches:
-      - main
+    branches: [prod-hardening]
   pull_request:
-    branches:
-      - main
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write # OIDC to AWS: no stored AWS keys anywhere
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ap-southeast-2
+  AWS_ROLE_ARN: arn:aws:iam::346208529954:role/pf-muti-tier-gha-deploy
+  TF_VERSION: 1.12.2
+  CLUSTER_NAME: pf-muti-tier-eks
+  TF_VAR_extra_admin_principal_arns: ${{ vars.EXTRA_ADMIN_ARNS || '[]' }}
 
 jobs:
-  build-and-push:
+  test:
+    name: Lint, test, build
     runs-on: ubuntu-latest
-
     steps:
-      # Step 1: Checkout the code from the GitHub repository
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      # Step 2: Set up Docker Buildx (for building multi-platform images if needed)
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-
-      # Step 3: Log into Docker Hub using credentials stored in GitHub Secrets
-      - name: Log into Docker Hub
-        uses: docker/login-action@v1
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-      # Step 4: Build and push the backend Docker image
-      - name: Build and push backend Docker image
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+      - name: Backend lint and tests
+        working-directory: backend
         run: |
-          docker build -f ./backend/Dockerfile -t ${{ secrets.DOCKER_USERNAME }}/backend:latest ./backend
-          docker push ${{ secrets.DOCKER_USERNAME }}/backend:latest
-
-      # Step 5: Build and push the frontend Docker image
-      - name: Build and push frontend Docker image
+          npm ci
+          npm run lint
+          npm test
+      - name: Frontend lint, tests and build
+        working-directory: frontend
+        env:
+          CI: "true"
+          INLINE_RUNTIME_CHUNK: "false"
         run: |
-          docker build -f ./frontend/Dockerfile -t ${{ secrets.DOCKER_USERNAME }}/frontend:latest ./frontend
-          docker push ${{ secrets.DOCKER_USERNAME }}/frontend:latest
+          npm ci
+          npm run lint
+          npm test
+          npm run build
+      - name: Validate Kubernetes manifests render
+        run: kubectl kustomize k8s > /dev/null
+
+  terraform-plan:
+    name: Terraform fmt, validate, plan
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - run: terraform fmt -check -recursive
+        working-directory: terraform
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Init and validate
+        working-directory: terraform
+        run: |
+          terraform init -input=false
+          terraform validate
+      - name: Plan
+        working-directory: terraform
+        run: terraform plan -input=false -lock-timeout=5m -out=tfplan | tee plan.txt
+
+  deploy:
+    name: Apply infra, push images, deploy, smoke test
+    needs: terraform-plan
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-duration-seconds: 7200
+
+      - name: Terraform apply (VPC, EKS, ECR, ingress, monitoring)
+        working-directory: terraform
+        run: |
+          terraform init -input=false
+          terraform apply -input=false -auto-approve -lock-timeout=5m
+
+      - name: Log in to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push images (tag = commit SHA)
+        env:
+          REGISTRY: ${{ steps.ecr.outputs.registry }}
+        run: |
+          for svc in backend frontend; do
+            repo="pf-muti-tier-${svc}"
+            if aws ecr describe-images --repository-name "$repo" --image-ids imageTag="${GITHUB_SHA}" >/dev/null 2>&1; then
+              echo "$repo:${GITHUB_SHA} already exists, skipping push"
+              continue
+            fi
+            docker buildx build --platform linux/amd64 --push \
+              -t "${REGISTRY}/${repo}:${GITHUB_SHA}" "./${svc}"
+          done
+
+      - name: Deploy application
+        run: |
+          aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION"
+          scripts/deploy-app.sh "${GITHUB_SHA}"
+
+      - name: Smoke test through the public load balancer
+        run: |
+          scripts/internal-comms.sh
+          scripts/smoke-test.sh | tee smoke.txt
+          echo '### Smoke test' >> "$GITHUB_STEP_SUMMARY"
+          tail -1 smoke.txt >> "$GITHUB_STEP_SUMMARY"

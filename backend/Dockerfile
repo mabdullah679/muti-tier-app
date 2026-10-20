@@ -1,20 +1,17 @@
-# Use the official Node.js image as the base image
-FROM node:14
-
-# Set the working directory in the container
+# syntax=docker/dockerfile:1
+FROM node:20-alpine AS deps
 WORKDIR /app
-
-# Copy backend package.json and package-lock.json
 COPY package*.json ./
+RUN npm ci --omit=dev
 
-# Install backend dependencies
-RUN npm install
-
-# Copy the rest of the backend files
-COPY . .
-
-# Expose the backend port (e.g., 3001)
+FROM node:20-alpine
+ENV NODE_ENV=production
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json ./
+COPY src ./src
+# The official image ships an unprivileged "node" user (uid 1000).
+USER node
 EXPOSE 3001
-
-# Start the backend server
-CMD ["npm", "start"]
+HEALTHCHECK --interval=30s --timeout=3s CMD node -e "fetch('http://127.0.0.1:3001/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+CMD ["node", "src/server.js"]

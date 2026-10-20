@@ -1,5 +1,53 @@
+:root { color-scheme: light dark; }
 body {
-  font-family: Arial, sans-serif;
-  text-align: center;
-  margin-top: 50px;
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: #f4f6f8;
+  color: #1b1f24;
+}
+.page { max-width: 36rem; margin: 0 auto; padding: 2rem 1rem; }
+.lede { color: #555; }
+.card {
+  background: #fff;
+  border: 1px solid #dde2e7;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-top: 1.25rem;
+}
+.card h2 { margin-top: 0; font-size: 1.1rem; }
+label { display: block; margin-bottom: 0.25rem; font-weight: 600; }
+input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid #aab2bb;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+button {
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: 4px;
+  background: #1f6feb;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+}
+button:disabled { opacity: 0.6; cursor: progress; }
+.pill { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 999px; margin: 0 0.75rem 0 0; }
+.pill-ok { background: #d8f5df; color: #14532d; }
+.pill-down { background: #fde0e0; color: #7f1d1d; }
+.pill-loading { background: #e6e9ed; color: #333; }
+.ok { color: #14532d; }
+.err { color: #b42318; }
+@media (prefers-color-scheme: dark) {
+  body { background: #0f1317; color: #e6e9ed; }
+  .card { background: #181d23; border-color: #2b333c; }
+  .lede { color: #9aa4af; }
+  .pill-ok { background: #123d22; color: #b7efc5; }
+  .pill-down { background: #4a1616; color: #fbd0d0; }
+  .pill-loading { background: #262d35; color: #ccc; }
+  .ok { color: #b7efc5; }
+  .err { color: #ff9b94; }
 }

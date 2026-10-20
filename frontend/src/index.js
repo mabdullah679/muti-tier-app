@@ -1,10 +1,10 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import './index.css';
+import App from './App';
 
-function App() {
-  return <h1>Hello, Multi-Tier App!</h1>;
-}
-
-ReactDOM.render(<App />, document.getElementById('root'));
-
+createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+);
