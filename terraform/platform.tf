@@ -87,6 +87,7 @@ resource "helm_release" "monitoring" {
     kubeProxy             = { enabled = false }
     prometheusOperator = {
       admissionWebhooks = { enabled = false }
+      tls               = { enabled = false }
       resources         = { requests = { cpu = "20m", memory = "64Mi" }, limits = { memory = "192Mi" } }
     }
     prometheus = {
