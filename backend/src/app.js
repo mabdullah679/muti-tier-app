@@ -26,6 +26,11 @@ function createApp({ logger = pino({ level: 'silent' }), state = { shuttingDown:
   app.use(
     pinoHttp({
       logger,
+      // Keep log lines small: no header dumps (they can carry credentials).
+      serializers: {
+        req: (req) => ({ id: req.id, method: req.method, url: req.url }),
+        res: (res) => ({ statusCode: res.statusCode }),
+      },
       // Probe and scrape traffic is noise in the application log.
       autoLogging: { ignore: (req) => ['/healthz', '/readyz', '/metrics'].includes(req.url) },
     }),
