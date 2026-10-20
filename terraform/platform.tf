@@ -26,10 +26,10 @@ resource "helm_release" "ingress_nginx" {
     controller = {
       replicas = 1
       service = {
+        # Classic ELB (no type annotation): this account's CreateLoadBalancer for
+        # NLB/ALB (elbv2) returns OperationNotPermitted; classic ELB works.
         type = "LoadBalancer"
         annotations = {
-          "service.beta.kubernetes.io/aws-load-balancer-type"                     = "nlb"
-          "service.beta.kubernetes.io/aws-load-balancer-scheme"                   = "internet-facing"
           "service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags" = "project=portfolio,repo=muti-tier-app,managed-by=terraform"
         }
       }
