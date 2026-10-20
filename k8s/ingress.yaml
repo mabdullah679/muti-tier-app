@@ -1,0 +1,24 @@
+# Host-less on purpose: the NLB hostname is only known after the cluster is up.
+# /api goes to the backend; everything else to the frontend. /metrics and
+# /healthz of the backend are NOT routed, so they stay cluster-internal.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app
+  namespace: app
+  annotations:
+    nginx.ingress.kubernetes.io/limit-rps: "20"
+    nginx.ingress.kubernetes.io/proxy-body-size: 8k
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service: { name: backend, port: { number: 3001 } }
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: frontend, port: { number: 80 } }
