@@ -33,4 +33,6 @@ What was not proven
 - Prices are estimates, about 26 cents an hour while running.
 
 Cost and cleanup
-It is meant to be a short demo and is destroyed after checking. To rebuild: gh workflow run ci-cd-pipeline.yml --ref prod-hardening. To destroy: scripts/destroy.sh. Removing the one-time setup is the very last step: terraform -chdir=terraform/bootstrap destroy.
+On 20 October 2026, right after checking, everything was taken down to save money. Direct lookups afterwards found no cluster, load balancer, disk, image store, storage bucket, role, network or log group left for this project, and the tagging service showed zero tagged items (it can lag a little). The shared login provider and shared permission limit policy were not touched.
+To rebuild: run terraform -chdir=terraform/bootstrap apply -auto-approve once (the one-time setup was also removed), then gh workflow run ci-cd-pipeline.yml --ref prod-hardening. It takes about 25 minutes.
+To take it down again: scripts/destroy.sh, then terraform -chdir=terraform/bootstrap destroy.
