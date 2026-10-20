@@ -41,20 +41,30 @@ module "eks" {
   admin_principal_arns     = concat([var.ci_role_arn], var.extra_admin_principal_arns)
 }
 
-data "aws_eks_cluster_auth" "this" {
-  name = module.eks.cluster_name
+# Tokens are fetched by the AWS CLI at call time (exec), not once at plan
+# time: cluster + node group creation takes longer than a token's 15 minutes.
+locals {
+  exec_args = ["eks", "get-token", "--cluster-name", local.cluster_name, "--region", var.region]
 }
 
 provider "kubernetes" {
   host                   = module.eks.endpoint
   cluster_ca_certificate = base64decode(module.eks.ca_data)
-  token                  = data.aws_eks_cluster_auth.this.token
+  exec {
+    api_version = "client.authentication.k8s.io/v1beta1"
+    command     = "aws"
+    args        = local.exec_args
+  }
 }
 
 provider "helm" {
   kubernetes {
     host                   = module.eks.endpoint
     cluster_ca_certificate = base64decode(module.eks.ca_data)
-    token                  = data.aws_eks_cluster_auth.this.token
+    exec {
+      api_version = "client.authentication.k8s.io/v1beta1"
+      command     = "aws"
+      args        = local.exec_args
+    }
   }
 }
