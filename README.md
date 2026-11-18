@@ -148,7 +148,7 @@ export CLOUDFLARE_API_TOKEN=...            # token allowed to edit Pages on your
 export TF_VAR_cloudflare_account_id=...    # or put it in terraform.tfvars (git-ignored)
 cd infra/cloudflare
 terraform init
-terraform plan     # expected: 1 to import, 0 to add, 0 to change, 0 to destroy. Stop if it shows changes or a replace.
+terraform plan     # observed 2026-11-18: 1 to import, 0 to add, 1 to change, 0 to destroy. The one change is the provider's computed `build_image_auto_upgrade` ("known after apply"), a v5 quirk; before/after API snapshots of the project showed no config difference. Stop if it shows a replace or any other change.
 terraform apply    # records the project in state; changes nothing on Cloudflare if the plan was clean
 ```
 
