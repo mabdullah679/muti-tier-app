@@ -50,3 +50,5 @@ To use it with your own Cloudflare login: set CLOUDFLARE_API_TOKEN and TF_VAR_cl
 What was checked: offline only. The formatting, the syntax check and 3 small tests (using a pretend Cloudflare, no login) pass, and one deliberate breakage of the main branch setting made a test fail before being undone. Not yet checked: the real plan against the real Cloudflare account. The owner has to do that.
 
 The page subtitle used to say React is served by Nginx behind a Kubernetes ingress, which is not true on Cloudflare Pages. It was fixed on 2026-11-18 to a sentence that is true on both deployments: A React front end talking to a small Node API.
+
+Automatic deploy (new): when code is merged to main, a GitHub workflow (deploy-pages.yml) builds and tests it, then logs in to AWS with a short-lived GitHub identity (no password stored in GitHub), reads the Cloudflare token from AWS Parameter Store, publishes the site to Cloudflare Pages, and checks the live address answers. It only works after the owner has applied the AWS role (infra/pages-deploy-role in the mab-sole-proprietorship repo); until then the deploy step fails at the AWS login. It has not been run for real yet.
