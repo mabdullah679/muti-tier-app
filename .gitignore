@@ -28,3 +28,16 @@ tmp/
 Thumbs.db
 Desktop.ini
 
+
+# macOS folder-localisation markers
+.localized
+
+# Terraform (also covered by terraform/.gitignore)
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# Pages tooling
+.wrangler/
+playwright-report/
+test-results/
