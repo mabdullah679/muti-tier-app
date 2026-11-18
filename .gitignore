@@ -41,3 +41,14 @@ Desktop.ini
 .wrangler/
 playwright-report/
 test-results/
+
+# Terraform (infra/cloudflare): never commit state, plans or real variable values
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+crash.log
+*.tfvars
+*.tfvars.json
+!*.tfvars.example

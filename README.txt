@@ -37,8 +37,16 @@ On 20 October 2026, right after checking, everything was taken down to save mone
 To rebuild: run terraform -chdir=terraform/bootstrap apply -auto-approve once (the one-time setup was also removed), then gh workflow run ci-cd-pipeline.yml --ref prod-hardening. It takes about 25 minutes.
 To take it down again: scripts/destroy.sh, then terraform -chdir=terraform/bootstrap destroy.
 
-Free hosting path (Cloudflare Pages), prepared but NOT deployed
-The same site can run for $0 on Cloudflare Pages. The front page is served as plain files and the three back-end routes were rewritten as Pages Functions (folder functions/api). The Amazon setup is untouched and is still the production path.
+Free hosting path (Cloudflare Pages), live since 18 November 2026
+The same site runs for $0 on Cloudflare Pages (https://multi-tier-app.pages.dev). The front page is served as plain files and the three back-end routes were rewritten as Pages Functions (folder functions/api). The Amazon setup is untouched and is still the production path.
 How it was checked: a test sends the same 23 requests to the original back-end and to the new functions and requires identical status, headers and answers. Two deliberate breakages (changed message, broken health answer) made it fail, and it went green again after undoing them. A browser test (Playwright) opens the built site through a local Cloudflare simulator, sees "Backend OK", sends a greeting and sees a bad name refused. A screenshot was looked at.
 Limits: the free plan allows about 100,000 back-end calls per day (Cloudflare's published number, not measured here). The health probes and Prometheus numbers were not ported because they only matter on Kubernetes.
-To deploy later (needs the owner's Cloudflare account and token): npm ci, npm run build:pages, then npx wrangler pages deploy. Nothing has been sent to Cloudflare.
+How it was deployed (by hand, 18 November 2026, with the owner's Cloudflare account and token): npm ci, npm run build:pages, then npx wrangler pages deploy.
+
+Live on Cloudflare Pages, and the Terraform for it
+The site is live at https://multi-tier-app.pages.dev. It was put there by hand on 18 November 2026 with the wrangler tool. Nothing deploys automatically: merging code to main does not update the live site.
+Terraform (folder infra/cloudflare) now describes the Cloudflare Pages PROJECT: its name, account and main branch. It does not upload the website files. The website files are still sent with: wrangler pages deploy. The Terraform has an import step so it adopts the project that already exists instead of making a new one.
+To use it with your own Cloudflare login: set CLOUDFLARE_API_TOKEN and TF_VAR_cloudflare_account_id in your terminal (never save them in a file in this repo), go into infra/cloudflare, run terraform init, then terraform plan. The plan was run on 2026-11-18 and said 1 to import and 1 to change: the one change is a read-only field the provider always reports as unknown after apply (a known quirk; before and after snapshots of the project showed no real difference). If it shows a replace or any other change, stop. Then run terraform apply. The identifier used for the import is the account id, a slash, and the project name.
+What was checked: offline only. The formatting, the syntax check and 3 small tests (using a pretend Cloudflare, no login) pass, and one deliberate breakage of the main branch setting made a test fail before being undone. Not yet checked: the real plan against the real Cloudflare account. The owner has to do that.
+
+One known wrong sentence: the page subtitle still says React is served by Nginx behind a Kubernetes ingress. That is the Amazon version of the story and is not true on Cloudflare Pages. It has not been changed yet.
