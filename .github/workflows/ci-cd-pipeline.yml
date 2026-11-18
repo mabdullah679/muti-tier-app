@@ -194,3 +194,29 @@ jobs:
           scripts/smoke-test.sh | tee smoke.txt
           echo '### Smoke test' >> "$GITHUB_STEP_SUMMARY"
           tail -1 smoke.txt >> "$GITHUB_STEP_SUMMARY"
+
+  terraform-cloudflare:
+    name: Terraform Cloudflare (offline fmt, validate, test)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # read-only; no Cloudflare token, no cloud calls
+    defaults:
+      run:
+        working-directory: infra/cloudflare
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: 1.12.2
+          terraform_wrapper: false
+      - run: terraform fmt -check -recursive
+      - name: Init without a backend (downloads the provider only)
+        run: terraform init -backend=false -input=false
+      - run: terraform validate
+      - name: Test root module (mock provider)
+        run: terraform test
+      - name: Test child module (mock provider)
+        working-directory: infra/cloudflare/modules/pages_project
+        run: |
+          terraform init -backend=false -input=false
+          terraform test

@@ -1,0 +1,3 @@
+# Copy to terraform.tfvars (git-ignored) and fill in. Placeholders only.
+# The API token is NOT a variable: export CLOUDFLARE_API_TOKEN in your shell.
+cloudflare_account_id = "REPLACE_WITH_YOUR_CLOUDFLARE_ACCOUNT_ID"
