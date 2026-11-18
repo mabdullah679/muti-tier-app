@@ -36,3 +36,9 @@ Cost and cleanup
 On 20 October 2026, right after checking, everything was taken down to save money. Direct lookups afterwards found no cluster, load balancer, disk, image store, storage bucket, role, network or log group left for this project, and the tagging service showed zero tagged items (it can lag a little). The shared login provider and shared permission limit policy were not touched.
 To rebuild: run terraform -chdir=terraform/bootstrap apply -auto-approve once (the one-time setup was also removed), then gh workflow run ci-cd-pipeline.yml --ref prod-hardening. It takes about 25 minutes.
 To take it down again: scripts/destroy.sh, then terraform -chdir=terraform/bootstrap destroy.
+
+Free hosting path (Cloudflare Pages), prepared but NOT deployed
+The same site can run for $0 on Cloudflare Pages. The front page is served as plain files and the three back-end routes were rewritten as Pages Functions (folder functions/api). The Amazon setup is untouched and is still the production path.
+How it was checked: a test sends the same 23 requests to the original back-end and to the new functions and requires identical status, headers and answers. Two deliberate breakages (changed message, broken health answer) made it fail, and it went green again after undoing them. A browser test (Playwright) opens the built site through a local Cloudflare simulator, sees "Backend OK", sends a greeting and sees a bad name refused. A screenshot was looked at.
+Limits: the free plan allows about 100,000 back-end calls per day (Cloudflare's published number, not measured here). The health probes and Prometheus numbers were not ported because they only matter on Kubernetes.
+To deploy later (needs the owner's Cloudflare account and token): npm ci, npm run build:pages, then npx wrangler pages deploy. Nothing has been sent to Cloudflare.

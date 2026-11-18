@@ -36,3 +36,8 @@ Desktop.ini
 .terraform/
 *.tfstate
 *.tfstate.*
+
+# Pages tooling
+.wrangler/
+playwright-report/
+test-results/

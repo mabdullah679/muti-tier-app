@@ -1,0 +1,5 @@
+# Free hosting path: Cloudflare Pages (static React build) + Pages Functions
+# (functions/api/, the Express API ported). Not used by the EKS/Terraform path.
+name = "multi-tier-app"
+compatibility_date = "2025-01-01"
+pages_build_output_dir = "frontend/build"

@@ -3,8 +3,7 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [prod-hardening]
-  pull_request:
-    branches: [main]
+  pull_request: # any base branch, so stacked PRs also get checks; AWS jobs below skip PRs
   workflow_dispatch:
 
 permissions:
@@ -52,6 +51,39 @@ jobs:
           npm run build
       - name: Validate Kubernetes manifests render
         run: kubectl kustomize k8s > /dev/null
+
+  pages-free-host:
+    name: Pages parity tests, build, Playwright (no Cloudflare login)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+            frontend/package-lock.json
+      - run: npm --prefix backend ci
+      - run: npm ci
+      - name: Parity tests (Express vs Pages Function)
+        run: npm run test:parity
+      - name: Build the Pages site
+        env:
+          INLINE_RUNTIME_CHUNK: "false"
+        run: npm run build:pages
+      - run: npx playwright install --with-deps chromium
+      - name: UI test against wrangler pages dev (local)
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: pages-playwright
+          path: test-results/
+          if-no-files-found: ignore
 
   terraform-checks:
     name: Terraform fmt and validate (no AWS)
