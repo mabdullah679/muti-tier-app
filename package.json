@@ -13,5 +13,5 @@
     "@playwright/test": "^1.49.0",
     "wrangler": "^4.0.0"
   },
-  "engines": { "node": ">=20" }
+  "engines": { "node": ">=22.12" }
 }
