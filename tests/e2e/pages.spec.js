@@ -9,6 +9,9 @@ test('built site loads and renders data fetched from /api (wrangler pages dev)',
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Hello, Multi-Tier App!' })).toBeVisible();
   await expect(page.getByTestId('health')).toHaveText('Backend OK (served by cloudflare-pages)');
+  // The subtitle must be true on every deployment (EKS and Pages), so it may not name Nginx or Kubernetes.
+  await expect(page.getByText('A React front end talking to a small Node API.')).toBeVisible();
+  await expect(page.locator('body')).not.toContainText(/Nginx|Kubernetes/i);
 
   await page.getByLabel('Your name').fill('Ada Lovelace');
   await page.getByRole('button', { name: 'Greet' }).click();

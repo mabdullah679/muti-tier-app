@@ -136,7 +136,7 @@ The same app runs for $0 on Cloudflare Pages: the React build is the static site
 
 - **Live now:** https://multi-tier-app.pages.dev (Pages project `multi-tier-app`), deployed by hand on 2026-11-18 with `wrangler pages deploy`. There is no CD: merging to `main` deploys nothing.
 - **Division of labour:** Terraform manages the Pages **project** (name, account, production branch; direct upload, no Git source). The **build** is deployed by `wrangler pages deploy`; Terraform does not upload builds.
-- Known wrong text: the page subtitle in `frontend/src/App.js` still reads "React served by Nginx, talking to a Node API through a Kubernetes ingress". That is the EKS story and is untrue on Pages (static files plus a Pages Function). Not changed here.
+- Page subtitle: it used to say "React served by Nginx ... Kubernetes ingress" (the EKS story, untrue on Pages). Fixed 2026-11-18 to "A React front end talking to a small Node API.", which is true on both deployments.
 
 - Code: [infra/cloudflare/](infra/cloudflare): root module ([main.tf](infra/cloudflare/main.tf), [variables.tf](infra/cloudflare/variables.tf), [outputs.tf](infra/cloudflare/outputs.tf), [versions.tf](infra/cloudflare/versions.tf): Terraform >= 1.5, `cloudflare/cloudflare` provider `~> 5.29`, locked to 5.29.0) calls the child module [modules/pages_project](infra/cloudflare/modules/pages_project/main.tf) (one `cloudflare_pages_project`) as `module "site"`. [terraform.tfvars.example](infra/cloudflare/terraform.tfvars.example) holds placeholders only.
 - An `import {}` block adopts the existing hand-made project instead of recreating it. Import id format (from the provider docs): `<account_id>/<project_name>`, written as `"${var.cloudflare_account_id}/${var.project_name}"`.

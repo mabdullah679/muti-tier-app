@@ -40,7 +40,7 @@ export default function App() {
     <main className="page">
       <h1>Hello, Multi-Tier App!</h1>
       <p className="lede">
-        React served by Nginx, talking to a Node API through a Kubernetes ingress.
+        A React front end talking to a small Node API.
       </p>
 
       <section className="card" aria-labelledby="status-heading">
