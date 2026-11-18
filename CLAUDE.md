@@ -13,6 +13,14 @@ docker build backend; docker build frontend                  # image builds
 `--no-watchman`: on the owner's Mac, jest hangs forever with no output when watchman is installed. CI does not need the flag.
 Terraform is not installed on the owner machine; `fmt`/`validate` run in CI only.
 
+## Free path: Cloudflare Pages (prepared 2026-11-18, never deployed)
+```
+npm ci && npm run test:parity                  # 24 tests: Express vs functions/api/[[path]].js, same requests
+npm run build:pages && npm run test:e2e        # React build + Playwright against local `wrangler pages dev`
+npx wrangler pages deploy                      # LATER, owner-approved only (needs a Cloudflare token). No CI deploy job exists.
+```
+`functions/` is the API port (reuses `backend/src/validation.js`); any change to a backend route must change the Function and a parity case. Free limit: 100k Function requests/day. EKS/Terraform path unchanged. No `wrangler login`/deploy without the owner.
+
 ## Layout
 `backend/` Express API, `frontend/` React + nginx, `k8s/` kustomize manifests, `terraform/` (root stack + modules) and `terraform/bootstrap/` (state bucket + OIDC role), `observability/` Grafana dashboard JSON, `scripts/` deploy/smoke/destroy, one workflow `.github/workflows/ci-cd-pipeline.yml`.
 

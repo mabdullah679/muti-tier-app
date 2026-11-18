@@ -1,0 +1,17 @@
+{
+  "name": "multi-tier-pages",
+  "private": true,
+  "description": "Free hosting path: Cloudflare Pages + Pages Functions (tooling only; the apps live in backend/ and frontend/)",
+  "scripts": {
+    "test:parity": "node --test tests/parity/parity.test.mjs",
+    "build:pages": "npm --prefix frontend ci && npm --prefix frontend run build && node scripts/pages-build.mjs",
+    "dev:pages": "wrangler pages dev",
+    "test:e2e": "playwright test",
+    "deploy:pages": "wrangler pages deploy"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "wrangler": "^4.0.0"
+  },
+  "engines": { "node": ">=22.12" }
+}
