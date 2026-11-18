@@ -13,11 +13,11 @@ docker build backend; docker build frontend                  # image builds
 `--no-watchman`: on the owner's Mac, jest hangs forever with no output when watchman is installed. CI does not need the flag.
 Terraform is not installed on the owner machine; run it via docker `hashicorp/terraform:1.12.2` (see Cloudflare section) or CI.
 
-## Free path: Cloudflare Pages (live since 2026-11-18, deployed by hand)
+## Free path: Cloudflare Pages (live since 2026-11-18, hand-deployed once, CD added)
 ```
 npm ci && npm run test:parity                  # 24 tests: Express vs functions/api/[[path]].js, same requests
 npm run build:pages && npm run test:e2e        # React build + Playwright against local `wrangler pages dev`
-npx wrangler pages deploy                      # how the live site was deployed 2026-11-18 (owner's token). No CI deploy job exists.
+npx wrangler pages deploy                      # how the live site was deployed 2026-11-18 (owner's token). CD workflow `deploy-pages.yml` (main only) now exists; it needs the owner to apply the role first.
 ```
 `functions/` is the API port (reuses `backend/src/validation.js`); any change to a backend route must change the Function and a parity case. Free limit: 100k Function requests/day. EKS/Terraform path unchanged. No `wrangler login`/deploy without the owner.
 
@@ -34,7 +34,7 @@ npx wrangler pages deploy                      # how the live site was deployed 
 - Commit `.env`, tfstate, or generated passwords (Grafana admin password lives in SSM).
 
 ## Cloudflare Pages + Terraform (`infra/cloudflare/`, added 2026-11-18)
-- Live: https://multi-tier-app.pages.dev (project `multi-tier-app`), deployed by hand 2026-11-18 with `wrangler pages deploy`. No CD exists.
+- Live: https://multi-tier-app.pages.dev (project `multi-tier-app`), deployed by hand 2026-11-18 with `wrangler pages deploy`. CD: `.github/workflows/deploy-pages.yml` on push to main (OIDC role `pf-pages-deploy` + SSM, no GitHub secret). Works only after the owner applies `infra/pages-deploy-role` in mab-sole-proprietorship. Never run end to end yet.
 - Terraform manages the Pages PROJECT only (child `modules/pages_project`, root calls it as `module "site"`, `import {}` id `"${var.cloudflare_account_id}/${var.project_name}"`, provider `cloudflare/cloudflare ~> 5.29`, locked 5.29.0). The BUILD is deployed by `wrangler pages deploy`; Terraform never uploads builds.
 - Offline checks (docker, no cloud): `docker run --rm -u $(id -u):$(id -g) -e HOME=/tmp -v "$PWD/infra/cloudflare":/w -w /w hashicorp/terraform:1.12.2 test` after `init -backend=false`; child module tests run the same way from `modules/pages_project`. CI job `terraform-cloudflare`.
 - Credentials: `CLOUDFLARE_API_TOKEN` from the environment and `cloudflare_account_id` as a variable. Never write either into a file. No `terraform plan/apply`, wrangler deploy or Cloudflare API call without the owner; the first real `plan` was run 2026-11-18 and showed 1 import + 1 change (the provider's computed `build_image_auto_upgrade`, a v5 quirk; an API snapshot before/after the apply showed no config difference) and the import was then applied (state is local, in `infra/cloudflare/`, gitignored). A re-plan still shows that 1 change; anything else, or a replace, is a stop.

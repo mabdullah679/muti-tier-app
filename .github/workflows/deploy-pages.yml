@@ -1,0 +1,114 @@
+name: deploy-pages
+
+# CD for the Cloudflare Pages project `multi-tier-app`: a push to main that passes build + tests is
+# deployed to production and then smoke tested at https://multi-tier-app.pages.dev.
+# No secret is stored in GitHub: AWS is reached by short lived OIDC login (role pf-pages-deploy, main
+# branch of this repo only) and the Cloudflare token is read from Parameter Store at deploy time.
+# Works only after the owner has applied infra/pages-deploy-role in mab-sole-proprietorship.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-pages-main
+  cancel-in-progress: false
+
+env:
+  WRANGLER_SEND_METRICS: "false"
+
+jobs:
+  build-test:
+    name: Build and test (deploy-pages)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22 # wrangler requires >=22.12
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+            frontend/package-lock.json
+      - run: npm --prefix backend ci
+      - run: npm ci
+      - name: Parity tests (Express vs Pages Function)
+        run: npm run test:parity
+      - name: Build the Pages site
+        env:
+          INLINE_RUNTIME_CHUNK: "false"
+        run: npm run build:pages
+      - run: npx playwright install --with-deps chromium
+      - name: UI test against wrangler pages dev (local)
+        run: npm run test:e2e
+      - name: Keep the build for the deploy job
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: pages-build
+          path: frontend/build/
+          retention-days: 1
+          if-no-files-found: error
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: failure()
+        with:
+          name: playwright-failures
+          path: test-results/
+          if-no-files-found: ignore
+
+  deploy:
+    name: deploy
+    needs: build-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      id-token: write # OIDC login to AWS: no stored keys
+      contents: read
+    env:
+      PROJECT_NAME: multi-tier-app
+      SITE_URL: https://multi-tier-app.pages.dev
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22 # wrangler requires >=22.12
+      - run: npm ci
+      - name: Get the build from the build job
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: pages-build
+          path: frontend/build/
+
+      - name: Sign in to AWS (short lived, main branch only)
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::025066259864:role/pf-pages-deploy
+          aws-region: us-east-1
+
+      - name: Deploy to Cloudflare Pages (credentials fetched, masked, never printed)
+        run: |
+          set +x
+          TOKEN="$(aws ssm get-parameter --name /mab-site/prod/cloudflare-api-token --with-decryption --query Parameter.Value --output text)"
+          echo "::add-mask::$TOKEN"
+          ACCOUNT="$(aws ssm get-parameter --name /mab-site/prod/cloudflare-account-id --query Parameter.Value --output text)"
+          echo "::add-mask::$ACCOUNT"
+          CLOUDFLARE_API_TOKEN="$TOKEN" CLOUDFLARE_ACCOUNT_ID="$ACCOUNT" \
+            npx wrangler pages deploy frontend/build --project-name "$PROJECT_NAME" --branch main --commit-dirty=true
+
+      - name: Smoke test the live site (must answer HTTP 200)
+        run: |
+          code=000
+          for _ in $(seq 1 20); do
+            code="$(curl -s -o /dev/null -w '%{http_code}' "$SITE_URL/" || true)"
+            [ "$code" = "200" ] && break
+            sleep 6
+          done
+          if [ "$code" != "200" ]; then echo "live site answered $code, expected 200"; exit 1; fi
+          echo "live site answered 200"
+          body="$(curl -fsS "$SITE_URL/api/health")" || { echo "/api/health did not answer 200"; exit 1; }
+          case "$body" in *ok*) ;; *) echo "/api/health body does not contain ok"; exit 1;; esac
