@@ -83,7 +83,7 @@ Backend config (environment): `PORT` (3001), `LOG_LEVEL` (info), `SHUTDOWN_DELAY
 - Backend: `cd backend && npm test` (13 tests, Node's built-in runner plus supertest) and `npm run lint`. No external services needed.
 - Frontend: `cd frontend && CI=true npm test` (4 tests, Jest and Testing Library, `fetch` mocked) and `npm run lint`.
 - Manifests: `kubectl kustomize k8s` must render.
-- CI runs all of the above, then `terraform fmt -check`, `validate` and `plan`.
+- CI runs all of the above plus a gitleaks secrets scan and `terraform fmt -check` / `validate` (no AWS needed, so they run on pull requests too). `terraform plan` needs AWS credentials and runs only on pushes and manual dispatches, never on pull requests.
 - Logic guards were mutation-checked: loosening the name-length check, disabling the shutdown branch of `/readyz`, removing the character-pattern check, and swallowing the API error message in the UI each turned a test red, and the edits were then reversed.
 - Not covered by automated tests: the Terraform modules (checked by validate/plan/apply only), and the Grafana dashboard JSON.
 
@@ -106,7 +106,8 @@ Backend config (environment): `PORT` (3001), `LOG_LEVEL` (info), `SHUTDOWN_DELAY
 | [terraform/bootstrap/](terraform/bootstrap/main.tf) | State bucket and OIDC deploy role (applied once, locally) |
 | [observability/backend-dashboard.json](observability/backend-dashboard.json) | Grafana dashboard, loaded by the sidecar |
 | [scripts/](scripts/) | `deploy-app.sh`, `smoke-test.sh`, `internal-comms.sh`, `shutdown-app.sh`, `destroy.sh` (the old Minikube scripts, adapted) |
-| [.github/workflows/ci-cd-pipeline.yml](.github/workflows/ci-cd-pipeline.yml) | Pipeline |
+| [.github/workflows/ci-cd-pipeline.yml](.github/workflows/ci-cd-pipeline.yml) | Pipeline (actions pinned to commit SHAs; `id-token: write` only on the AWS jobs) |
+| [CLAUDE.md](CLAUDE.md) | Repo-specific notes for AI coding sessions |
 
 ## Design decisions
 

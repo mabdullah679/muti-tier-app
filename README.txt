@@ -9,7 +9,7 @@ How to try it on your own computer
 3. Open http://localhost:3000.
 
 How it gets to Amazon
-Pushing to the prod-hardening branch makes GitHub Actions check the code, run the tests, plan the infrastructure, build it, push the container images to Amazon's image store, put the app on the cluster, and then test the public address. A one-time setup (terraform/bootstrap) creates the place where Terraform remembers its work and the role GitHub uses to log in.
+Pushing to the prod-hardening branch makes GitHub Actions check the code, run the tests, plan the infrastructure, build it, push the container images to Amazon's image store, put the app on the cluster, and then test the public address. On a pull request, only the checks run (code style, tests, a Terraform syntax check, and a scan for leaked keys); nothing touches AWS. A one-time setup (terraform/bootstrap) creates the place where Terraform remembers its work and the role GitHub uses to log in.
 
 What was done
 - The back-end got input checks, health and readiness endpoints, JSON logs, security headers, metrics, graceful shutdown, and 13 tests.
