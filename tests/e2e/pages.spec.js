@@ -17,6 +17,8 @@ test('built site loads and renders data fetched from /api (wrangler pages dev)',
   await page.getByRole('button', { name: 'Greet' }).click();
   await expect(page.getByRole('status')).toContainText('Hello, Ada Lovelace!');
   await expect(page.getByRole('status')).toContainText('cloudflare-pages');
+  await expect(page.getByTestId('greet-result')).toContainText('Answered by the API on: cloudflare-pages');
+  await expect(page.getByTestId('demonstrates')).toContainText('What this demonstrates');
 
   await page.getByLabel('Your name').fill('<script>');
   await page.getByRole('button', { name: 'Greet' }).click();

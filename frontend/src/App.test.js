@@ -48,3 +48,24 @@ test('validation errors from the API are shown to the user', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Greet' }));
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('"name" must not be empty'));
 });
+
+test('states what the page demonstrates, without naming a hosting platform', async () => {
+  mockFetch({ 'GET /api/health': () => ({ body: { status: 'ok', servedBy: 'pod-a' } }) });
+  render(<App />);
+  const line = await screen.findByTestId('demonstrates');
+  expect(line).toHaveTextContent(/What this demonstrates/);
+  expect(line.textContent).not.toMatch(/Nginx|Kubernetes/i);
+});
+
+test('the greet result is a clear block: the greeting and which server answered', async () => {
+  mockFetch({
+    'GET /api/health': () => ({ body: { status: 'ok', servedBy: 'pod-a' } }),
+    'POST /api/greet': () => ({ body: { greeting: 'Hello, Ada!', servedBy: 'pod-b' } }),
+  });
+  render(<App />);
+  await userEvent.type(screen.getByLabelText(/your name/i), 'Ada');
+  await userEvent.click(screen.getByRole('button', { name: 'Greet' }));
+  const box = await screen.findByTestId('greet-result');
+  expect(box).toHaveTextContent('Hello, Ada!');
+  expect(box).toHaveTextContent('Answered by the API on: pod-b');
+});

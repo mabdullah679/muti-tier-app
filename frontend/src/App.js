@@ -42,6 +42,10 @@ export default function App() {
       <p className="lede">
         A React front end talking to a small Node API.
       </p>
+      <p className="demo" data-testid="demonstrates">
+        What this demonstrates: a web page (React) and a separate API (Node) working together. The
+        status badge and the greeting below are answered live by the API.
+      </p>
 
       <section className="card" aria-labelledby="status-heading">
         <h2 id="status-heading">Backend status</h2>
@@ -71,9 +75,10 @@ export default function App() {
           </button>
         </form>
         {result && (
-          <p role="status" className="ok">
-            {result.greeting} <small>(pod {result.servedBy})</small>
-          </p>
+          <div role="status" className="result" data-testid="greet-result">
+            <p className="result-greeting">{result.greeting}</p>
+            <p className="result-meta">Answered by the API on: {result.servedBy}</p>
+          </div>
         )}
         {error && (
           <p role="alert" className="err">
